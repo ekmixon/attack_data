@@ -25,7 +25,7 @@ class DataManipulation:
         if sourcetype == 'aws:cloudtrail':
             self.manipulate_timestamp_cloudtrail(file_path)
 
-        if source == 'WinEventLog:System' or source == 'WinEventLog:Security':
+        if source in ['WinEventLog:System', 'WinEventLog:Security']:
             self.manipulate_timestamp_windows_event_log_raw(file_path)
 
         if source == 'exchange':
@@ -85,7 +85,7 @@ class DataManipulation:
             new_time = self.difference + event_time
             return new_time.strftime("%m/%d/%Y %I:%M:%S %p")
         except Exception as e:
-            print("ERROR - in timestamp replacement occured: " + str(e))
+            print(f"ERROR - in timestamp replacement occured: {str(e)}")
             return match.group()
 
 
@@ -136,7 +136,10 @@ def send_to_splunk(settings):
     try:
         service = client.connect(host=settings['splunk']['host'], port=8089, username=settings['splunk']['username'], password=settings['splunk']['password'])
     except ConnectionRefusedError as e:
-        print("ERROR - could not connect to the splunk server {}:8089".format(settings['splunk']['host']))
+        print(
+            f"ERROR - could not connect to the splunk server {settings['splunk']['host']}:8089"
+        )
+
         sys.exit(1)
 
     # go through all datasets
@@ -152,15 +155,19 @@ def send_to_splunk(settings):
             fullpath = os.path.abspath(dataset['path'])
 
             # update timestamps before replay
-            if 'update_timestamp' in dataset['replay_parameters']:
-                    if dataset['replay_parameters']['update_timestamp'] == True:
-                        data_manipulation = DataManipulation()
-                        data_manipulation.manipulate_timestamp(fullpath, dataset['replay_parameters']['sourcetype'], dataset['replay_parameters']['source'])
+            if (
+                'update_timestamp' in dataset['replay_parameters']
+                and dataset['replay_parameters']['update_timestamp'] == True
+            ):
+                data_manipulation = DataManipulation()
+                data_manipulation.manipulate_timestamp(fullpath, dataset['replay_parameters']['sourcetype'], dataset['replay_parameters']['source'])
 
             # upload file
-            kwargs_submit = dict()
-            kwargs_submit['sourcetype'] = dataset['replay_parameters']['sourcetype']
-            kwargs_submit['rename-source'] = dataset['replay_parameters']['source']
+            kwargs_submit = {
+                'sourcetype': dataset['replay_parameters']['sourcetype'],
+                'rename-source': dataset['replay_parameters']['source'],
+            }
+
             results = index.upload(fullpath, **kwargs_submit)
     return True
 
@@ -188,9 +195,7 @@ if __name__ == "__main__":
     CONFIG_PATH = args.config
     verbose = args.verbose
     settings = parse_config(CONFIG_PATH, verbose)
-    status = send_to_splunk(settings)
-
-    if status:
+    if status := send_to_splunk(settings):
         print("successfully indexed {0} dataset on splunk server {1}".format(len(settings['datasets']), settings['splunk']['host']))
     else:
         print("ERROR - issue replaying desired datasets on splunk server {0}".format(settings['splunk']['host']))

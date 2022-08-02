@@ -31,7 +31,10 @@ def write_new_object(obj, relative_path, branch):
     for dataset in obj['dataset']:
         a = urlparse(dataset)
         data_file_name = os.path.basename(a.path)
-        new_obj['dataset'].append('https://media.githubusercontent.com/media/splunk/attack_data/' + branch + '/datasets/' + os.path.dirname(relative_path) + '/' + data_file_name)
+        new_obj['dataset'].append(
+            f'https://media.githubusercontent.com/media/splunk/attack_data/{branch}/datasets/{os.path.dirname(relative_path)}/{data_file_name}'
+        )
+
 
     write_file(new_obj, relative_path)
 
@@ -51,10 +54,8 @@ def load_objects(relative_path):
 def convert_attack_data_objects(relative_path, branch):
     attack_data_objs, attack_data_files = load_objects(relative_path)
 
-    counter = 0
-    for attack_data_obj in attack_data_objs:
+    for counter, attack_data_obj in enumerate(attack_data_objs):
         write_new_object(attack_data_obj, attack_data_files[counter], branch)
-        counter += 1
 
 
 def main(args):

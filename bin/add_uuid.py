@@ -9,13 +9,14 @@ def add_uuid(REPO_PATH, content_part, VERBOSE):
 
     types = ["attack_techniques", "malware", "suspicious_behaviour"]
     for t in types:
-        for root, dirs, files in walk(REPO_PATH + "/" + content_part + '/' + t):
-            for file in files:
-                if file.endswith(".yml"):
-                    manifest_files.append((path.join(root, file)))
+        for root, dirs, files in walk(f"{REPO_PATH}/{content_part}/{t}"):
+            manifest_files.extend(
+                path.join(root, file)
+                for file in files
+                if file.endswith(".yml")
+            )
 
     for manifest_file in manifest_files:
-        pretty_yaml = dict()
         if VERBOSE:
             print("processing manifest {0}".format(manifest_file))
 
@@ -28,8 +29,7 @@ def add_uuid(REPO_PATH, content_part, VERBOSE):
                 error = True
                 continue
 
-        pretty_yaml['author'] = object['author']
-        pretty_yaml['id'] = str(uuid.uuid1())
+        pretty_yaml = {'author': object['author'], 'id': str(uuid.uuid1())}
         pretty_yaml['date'] = object['date']
         pretty_yaml['description'] = object['description']
         pretty_yaml['environment'] = object['environment']
